@@ -9,16 +9,19 @@ class RecipeSearchPage extends StatefulWidget {
 
 class _RecipeSearchPageState extends State<RecipeSearchPage> {
   List<dynamic> data = [];
+  List<dynamic> filteredData = [];
+  String sf='vegan';
 
   @override
   void initState() {
     super.initState();
     fetchData();
+    // filteredData.addAll(data);
   }
-
+  String search="";
+  final apiKey = '668bd1a9195b45c9be73281f4855f975';
   Future<void> fetchData() async {
-    final apiKey = '73e6b2270ac14f1799190b3d41ccd7a9';
-    final url = 'https://api.spoonacular.com/recipes/findByIngredients?ingredients=apples&apiKey=$apiKey'; // Replace with your API endpoint
+    final url = 'https://api.spoonacular.com/recipes/findByIngredients?ingredients=$search&apiKey=$apiKey'; // Replace with your API endpoint
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -38,6 +41,46 @@ class _RecipeSearchPageState extends State<RecipeSearchPage> {
       print('Error: $e');
     }
   }
+  // String chk='true';
+  List<dynamic> filterData=[];
+  List<int> indss=[];
+  List<dynamic> summary=[];
+  String chk="ye";
+  Future<void> fetchFilter(int id,int ind,String Query) async {
+    // final apiKey = 'cbe0ee6e4d8c4e638242bb26e40c2618';
+    // final apiKey = '73e6b2270ac14f1799190b3d41ccd7a9';
+    // string id=653999
+    final url = 'https://api.spoonacular.com/recipes/$id/information?apiKey=$apiKey'; // Replace with your API endpoint
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        // If the server returns a 200 OK response, parse the JSON
+        final jsonData = json.decode(response.body);
+        // print(jsonData);
+        setState(() {
+          // if()
+
+          if(jsonData[Query]==false) chk='no';
+          else summary.add({ind.toString():{'summary':jsonData['summary']}});
+          // print(data);// Assuming the API response contains a 'results' field with the list of elements
+        });
+      } else {
+        // If the server returns an error response, throw an exception
+        throw Exception('Failed to load data');
+      }
+    } catch (e) {
+      // Handle errors
+      print('Error: $e');
+    }
+  }
+  void applyFilter(String query){
+    for(int i=0;i<data.length;i++){
+      fetchFilter(data[i]['id'],i,query);
+      if(chk=='no') {data.removeAt(i);i--;}
+      chk='ye';
+    }
+    // for(int i=0;)
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,8 +98,28 @@ class _RecipeSearchPageState extends State<RecipeSearchPage> {
               ),
               onChanged: (query) {
                 // Implement search functionality
+                setState((){
+                  search=query;
+                  fetchData();
+                });
               },
             ),
+          ),
+          DropdownButton<String>(
+            value:sf,
+            onChanged: (String? newValue) {
+              setState(() {
+                sf = newValue!;
+                applyFilter(newValue);
+              });
+            },
+            items: <String>['vegetarian', 'vegan', 'glutenFree', 'veryHealthy']
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
           ),
           Expanded(
             child: ListView.builder(
@@ -76,7 +139,7 @@ class _RecipeSearchPageState extends State<RecipeSearchPage> {
                       // Handle button pres
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => RecipeDetailPage(data,index)),
+                        MaterialPageRoute(builder: (context) => RecipeDetailPage(data,index,summary)),
                       );
                       // return
                     },
